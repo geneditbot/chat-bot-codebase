@@ -19,3 +19,11 @@ class Message(Base):
     role = Column(String(10))
     content = Column(Text)
     timestamp = Column(DateTime, default=datetime.utcnow)
+
+class Feedback(Base):
+    __tablename__ = "chat_feedback"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    session_id = Column(String(36), ForeignKey("chat_sessions.id"))
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    feedback = Column(Text)
+    

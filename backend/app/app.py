@@ -10,7 +10,7 @@ from docx import Document
 import fitz  # PyMuPDF
 from typing import Optional
 from .init_db import init_db
-from .models import ChatSession, Message
+from .models import ChatSession, Message, Feedback
 from .db import SessionLocal
 from fastapi.responses import StreamingResponse
 from docx import Document
@@ -41,17 +41,17 @@ Only after the lesson plan is uploaded, ask the educator what kind of support th
 
 Support options (shown only after upload):
 
-I want to integrate EDI principles into this lesson plan.
+1. I want to integrate EDI principles into this lesson plan.
 
-I want to include better examples or datasets that reflect EDI principles.
+2. I want to include better examples or datasets that reflect EDI principles.
 
-I want to design an EDI-integrated assignment for this lesson.
+3. I want to design an EDI-integrated assignment for this lesson.
 
-I want to include reflective questions to help students think about EDI in this lesson.
+4. I want to include reflective questions to help students think about EDI in this lesson.
 
-I want to evaluate my lesson plan in terms of how well it addresses EDI principles.
+5. I want to evaluate my lesson plan in terms of how well it addresses EDI principles.
 
-Something else.
+6. Something else.
 
 If the educator selects a numbered option, respond with relevant insights, suggestions, or resources tailored to their choice. If they select “Something else,” ask them to describe their specific needs or goals.
 
@@ -381,3 +381,11 @@ def download_lesson(session_id: str = Query(...)):
             "Content-Disposition": f"attachment; filename=updated_lesson_{session_id[:8]}.docx"
         }
     )
+
+@app.post("/submitFeedback")
+async def submit_feedback(session_id: str = Form(...), feedback: str = Form(...)):
+    db = SessionLocal()
+    db.add(Feedback(session_id=session_id, feedback=feedback))
+    db.commit()
+    db.close()
+    return {"message": "Feedback submitted successfully."}
