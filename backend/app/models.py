@@ -25,5 +25,6 @@ class Feedback(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     session_id = Column(String(36), ForeignKey("chat_sessions.id"))
     timestamp = Column(DateTime, default=datetime.utcnow)
+    name = Column(String(50))
     feedback = Column(Text)
     

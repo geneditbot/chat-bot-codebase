@@ -13,6 +13,7 @@ const Chatbot = () => {
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [showFeedbackPopup, setShowFeedbackPopup] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackProvider, setFeedbackProvider] = useState("");
 
   const updatePhrases = [
   "update your lesson plan",
@@ -195,6 +196,7 @@ const Chatbot = () => {
   const formData = new FormData();
   formData.append("session_id", sessionId);
   formData.append("feedback", feedbackText);
+  formData.append("feedbackProvider", feedbackProvider);
 
   try {
     const res = await fetch("http://localhost:8000/submitFeedback", {
@@ -206,6 +208,7 @@ const Chatbot = () => {
     alert("🙏 Thank you for your feedback!");
     setShowFeedbackPopup(false);
     setFeedbackText("");
+    setFeedbackProvider("")
   } catch (err) {
     alert("⚠️ Failed to submit feedback.");
   }
@@ -362,6 +365,14 @@ return (
       <h2 className="text-2xl font-semibold mb-4 text-center text-gray-800">
         Send Feedback
       </h2>
+      <input
+            type="text"
+            placeholder="Your name"
+            value={feedbackProvider}
+            onChange={(e) => setFeedbackProvider(e.target.value)}
+            className="flex-1 border border-gray-300 rounded-md px-3 py-2"
+      />
+      <br/><br/>
       <textarea
         className="w-full h-48 border border-gray-300 rounded-lg p-4 text-base"
         value={feedbackText}

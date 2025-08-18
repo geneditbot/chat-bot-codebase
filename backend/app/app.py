@@ -111,7 +111,7 @@ Align with the educator’s original intent and lesson context;
 
 Be supportive and conversational in tone.
 
-Ask whether they would like to “update the lesson plan” definitely, whenever you provided content that can be directly added to the lesson plan. Use the exact phrasing. 
+Ask whether they would like to “update the lesson plan” definitely, whenever you provided content that can be directly added to the lesson plan. When asking this question please use the exact phrasing “update the lesson plan” within your message. 
 
 At any point do not limit yourself only to the specifically mentioned follow-up question; 
 including that question, include other relevant follow-up questions as well, according to the provided instructions.
@@ -155,7 +155,7 @@ def summarize_old_messages(session_id: str, db):
         {"role": "system", "content": "You are summarizing a conversation between an educator and an EDI advisor. Provide a brief summary of the conversation so far."},
         *[{"role": m.role, "content": m.content} for m in early_messages]
     ]
-    summary_response = client.chat.completions.create(model="gpt-4o", messages=prompt)
+    summary_response = client.chat.completions.create(model="gpt-4.1-mini", messages=prompt)
     return summary_response.choices[0].message.content
 
 
@@ -206,7 +206,7 @@ async def chatStart():
     db.add(Message(session_id=session_id, role="system", content=SYSTEM_PROMPT))
 
     response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1-mini",
             messages= [{"role": "system", "content": SYSTEM_PROMPT}]
         )
         
@@ -278,7 +278,7 @@ async def chatStart(file: UploadFile = File(None), session_id: Optional[str] = F
         chat_messages.append({"role": "user", "content": f"Lesson Plan:\n{file_content}"})
 
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1-mini",
             messages=chat_messages
         )
 
@@ -341,9 +341,9 @@ async def update_lesson(session_id: str = Form(...), new_content: str = Form(...
             db.commit()
 
     chat_messages = get_chat_history(session_id, db)
-    chat_messages.append({"role": "user", "content": f"Update the lesson plan by integrating the new content - \n{new_content} in to the current lesson plan - \n{currentContent} appropriately preserving the pedagogical flow. In the response provide only the updated lesson plan. At the start display Updated Lesson Plan as the heading"})
+    chat_messages.append({"role": "user", "content": f"Update the lesson plan by integrating the new content - \n{new_content} in to the current lesson plan - \n{currentContent} appropriately preserving the pedagogical flow. In the response provide the full content of the updated lesson plan. At the start display Updated Lesson Plan as the heading. Do not include any additional texts in the response."})
     response = client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4.1-mini",
             messages=chat_messages
         )
 
@@ -383,9 +383,9 @@ def download_lesson(session_id: str = Query(...)):
     )
 
 @app.post("/submitFeedback")
-async def submit_feedback(session_id: str = Form(...), feedback: str = Form(...)):
+async def submit_feedback(session_id: str = Form(...), feedback: str = Form(...), feedbackProvider: str = Form(...)):
     db = SessionLocal()
-    db.add(Feedback(session_id=session_id, feedback=feedback))
+    db.add(Feedback(session_id=session_id, feedback=feedback, name=feedbackProvider))
     db.commit()
     db.close()
     return {"message": "Feedback submitted successfully."}
