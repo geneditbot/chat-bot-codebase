@@ -254,7 +254,7 @@ return (
       {/* Chat Column */}
       <div className="w-full md:w-4/5 flex flex-col p-4">
         <div className="mb-4 text-center">
-          <p className="text-xl font-semibold text-gray-800">Welcome to EDI Integration Assistant</p>
+          <p className="text-xl font-semibold text-gray-800">Welcome to GenEDIt</p>
         </div>
 
         <div
