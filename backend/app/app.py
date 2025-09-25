@@ -16,11 +16,14 @@ from fastapi.responses import StreamingResponse
 from docx import Document
 import io
 
+#Load OpenAI API key
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+#Initialize DB
 init_db()
 
+#Initialize app
 app = FastAPI()
 
 # CORS for frontend
@@ -32,6 +35,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+#Define and initialize chatbot system prompt
 SYSTEM_PROMPT = (
     '''You are an EDI advisor chatbot. Your role is to support educators in integrating Equity, Diversity, and Inclusion (EDI) principles into their ICT lesson plans. Draw on your knowledge of EDI in ICT education to offer thoughtful, practical, and constructive guidance.
 
@@ -55,39 +59,39 @@ Support options (shown only after upload):
 
 If the educator selects a numbered option, respond with relevant insights, suggestions, or resources tailored to their choice. If they select “Something else,” ask them to describe their specific needs or goals.
 
-📌 When offering suggestions, apply the following guiding principles:
-🔍 1. Strong Equity
+ When offering suggestions, apply the following guiding principles:
+ 1. Strong Equity
 Provide suggestions with a focus on strong equity, including:
 • Recognition: Validate the lived experiences and knowledge of marginalized groups.
 • Representation: Ensure students from diverse backgrounds are visible in content, examples, and discourse.
 • Reframing: Challenge deficit narratives and stereotypes using inclusive language and critical reflection.
 
-🧠 2. Universal Design for Learning (UDL)
+ 2. Universal Design for Learning (UDL)
 Apply UDL principles, especially those supporting emotional capacity:
 • Embed empathy and restorative practices into learning activities.
 • Use strategies that foster perspective-taking, relational awareness, and community trust.
 • Design tasks that allow for multiple formats of expression and support safe academic risk-taking.
 
-🧩 3. Social Constructivist Learning
+ 3. Social Constructivist Learning
 Promote collaborative learning and distributed expertise:
 • Encourage peer interaction and co-construction of knowledge.
 • Include content that raises awareness of different social groups to challenge assumptions.
 • Use open-ended tasks that invite diverse perspectives and lived experiences.
 
-🏫 4. Teacher and Institutional Practice Awareness
+ 4. Teacher and Institutional Practice Awareness
 Be mindful of hidden curriculum and institutional norms:
 • Include diverse representation in texts, examples, and references.
 • Avoid reinforcing dominant cultural norms or stereotypes.
 • Design activities that disrupt bias and foster critical empathy.
 
-✅ Design Requirements
+ Design Requirements
 • Offer multiple modes of engagement (e.g., visual, oral, written, experiential).
 • Provide flexibility in how students demonstrate understanding.
 • Use inclusive language and prompts that invite varied viewpoints.
 • Include feedback mechanisms that are empathetic, growth-oriented, and restorative.
 Where appropriate, integrate data or insights about different social groups to build awareness and counter deficit thinking.
 
-🧭 Conversation Flow and Follow-up Guidance
+Conversation Flow and Follow-up Guidance
 Throughout the conversation:
 
 Use a supportive, conversational tone.
@@ -100,7 +104,7 @@ If the educator seems unsure or stuck, suggest possible directions or ask clarif
 
 If they enter an unrecognized input, gently prompt them to choose from the available options or rephrase their request.
 
-🔄 Follow-up After Suggestions
+Follow-up After Suggestions
 After suggesting new content—such as examples, datasets, assignments, reflective questions, or learning activities—ask context-appropriate follow-up questions that help the educator reflect, refine, or move forward. These follow-up prompts should:
 
 Encourage adaptation, integration, or deeper thinking;
@@ -116,7 +120,7 @@ Ask whether they would like to “update the lesson plan” definitely, whenever
 At any point do not limit yourself only to the specifically mentioned follow-up question; 
 including that question, include other relevant follow-up questions as well, according to the provided instructions.
 
-🎯 Special Handling
+Special Handling
 If the educator chooses Option 2 (datasets/examples):
 
 If only suggestions for improvement are offered, follow up by asking:
@@ -130,9 +134,10 @@ After providing suggestions, ask whether they’d like to design an individual o
 '''
         )
 
-
+#Initialize maximum number of messages in the chat history
 MAX_HISTORY = 20
 
+#Functions to extract text from the uploaded lesson plan
 def extract_text_from_docx(file_bytes: bytes) -> str:
     doc = Document(BytesIO(file_bytes))
     return "\n".join(para.text for para in doc.paragraphs)
@@ -158,7 +163,7 @@ def summarize_old_messages(session_id: str, db):
     summary_response = client.chat.completions.create(model="gpt-4.1-mini", messages=prompt)
     return summary_response.choices[0].message.content
 
-
+#Send chat history
 def get_chat_history(session_id: str, db):
     session = db.query(ChatSession).filter_by(id=session_id).first()
     history = db.query(Message).filter_by(session_id=session_id).order_by(Message.timestamp).all()
@@ -169,11 +174,11 @@ def get_chat_history(session_id: str, db):
         for m in messages
     )
 
-    # Step 2: Inject system prompt if missing
+    #Inject system prompt if missing
     if not system_prompt_present:
         messages.insert(0, {
             "role": "system",
-            "content": SYSTEM_PROMPT  # <-- replace with your full prompt string
+            "content": SYSTEM_PROMPT  
     })
 
     # Check if original lesson is referenced
@@ -188,6 +193,7 @@ def get_chat_history(session_id: str, db):
             "content": f"The original lesson plan for this conversation is:\n{session.original_lesson}"
         })
 
+    #Inject chat history summary if available
     if session and session.summary:
         messages.insert(1, {
             "role": "system",
@@ -201,7 +207,7 @@ async def chatStart():
     db = SessionLocal()
     session_id = str(uuid4())  # Create unique session ID
 
-    # Initial conversation history
+    # Initiate conversation executing system prompt
     db.add(ChatSession(id=session_id))
     db.add(Message(session_id=session_id, role="system", content=SYSTEM_PROMPT))
 
@@ -224,12 +230,14 @@ async def chatContinue(message: str = Form(...), session_id: str = Form(...)):
     db = SessionLocal()
     chat_session = db.query(ChatSession).filter_by(id=session_id).first()
 
+    #Generate chat history summary if it is not available 
     if not chat_session.summary:
         summary = summarize_old_messages(session_id, db)
         if summary:
-            chat_session.summary = summary
+            chat_session.summary = summary #Set chat history summary to chat session
             db.commit()
 
+    #Inject chat history and user message to the prompt
     chat_messages = get_chat_history(session_id, db)
     chat_messages.append({"role": "user", "content": message})
 
@@ -251,7 +259,7 @@ async def chatContinue(message: str = Form(...), session_id: str = Form(...)):
 async def chatStart(file: UploadFile = File(None), session_id: Optional[str] = Form(None)):
     db = SessionLocal()
     file_content=""
-
+    #Extract content of the lesson plan
     if file:
         file_bytes = await file.read()
         if file.filename.endswith(".docx"):
@@ -264,6 +272,7 @@ async def chatStart(file: UploadFile = File(None), session_id: Optional[str] = F
             except UnicodeDecodeError:
                 file_content = "[File uploaded, but not readable.]"
 
+        #Retrieve chat session
         chat_session = db.query(ChatSession).filter_by(id=session_id).first()
         if not chat_session:
             return JSONResponse(status_code=400, content={"error": "Invalid session_id"})
@@ -274,6 +283,7 @@ async def chatStart(file: UploadFile = File(None), session_id: Optional[str] = F
                 chat_session.summary = summary
                 db.commit()
 
+        #Set chat history and file content to the prompt
         chat_messages = get_chat_history(session_id, db)
         chat_messages.append({"role": "user", "content": f"Lesson Plan:\n{file_content}"})
 
@@ -286,13 +296,14 @@ async def chatStart(file: UploadFile = File(None), session_id: Optional[str] = F
 
         db.add(Message(session_id=session_id, role="user", content=f"Lesson Plan:\n{file_content}"))
         db.add(Message(session_id=session_id, role="assistant", content=api_response))
-        chat_session.original_lesson = file_content
+        chat_session.original_lesson = file_content #Update lesson plan in db with uploaded file content
         chat_session.updated_lesson = file_content
         db.commit()
 
         db.close()
         return {"response": api_response, "session_id": session_id}
-    
+
+#Retrieve chat sessions for chat history   
 @app.get("/sessions")
 def get_sessions():
         db = SessionLocal()
@@ -308,6 +319,7 @@ def get_sessions():
         db.close()
         return JSONResponse(content=results)
 
+#Retrieve messages of the selected chat session from the chat history
 @app.get("/sessionMessages")
 def get_session_messages(session_id: str = Query(...)):
     file = ""
@@ -324,6 +336,7 @@ def get_session_messages(session_id: str = Query(...)):
     db.close()
     return {"file": file, "messages": results}
 
+#Lesson plan update functionality
 @app.post("/updateLesson")
 async def update_lesson(session_id: str = Form(...), new_content: str = Form(...)):
     db = SessionLocal()
@@ -340,6 +353,7 @@ async def update_lesson(session_id: str = Form(...), new_content: str = Form(...
             chat_session.summary = summary
             db.commit()
 
+    #Update lesson plan by appending suggested content using LLM API
     chat_messages = get_chat_history(session_id, db)
     chat_messages.append({"role": "user", "content": f"Update the lesson plan by integrating the new content - \n{new_content} in to the current lesson plan - \n{currentContent} appropriately preserving the pedagogical flow. In the response provide the full content of the updated lesson plan. At the start display Updated Lesson Plan as the heading. Do not include any additional texts in the response."})
     response = client.chat.completions.create(
@@ -349,11 +363,12 @@ async def update_lesson(session_id: str = Form(...), new_content: str = Form(...
 
     api_response = response.choices[0].message.content
     db.add(Message(session_id=session_id, role="assistant", content=api_response))
-    chat_session.updated_lesson = api_response
+    chat_session.updated_lesson = api_response #Update updated lesson plan in db 
     db.commit()
     db.close()
     return {"response": api_response, "session_id": session_id}
 
+#Download updated lesson plan functionality
 @app.get("/downloadLesson")
 def download_lesson(session_id: str = Query(...)):
     db = SessionLocal()

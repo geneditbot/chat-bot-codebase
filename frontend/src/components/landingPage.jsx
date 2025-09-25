@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
+//Landing page for future development. Do not use at the moment
 const LandingPage = () => {
   const navigate = useNavigate();
 

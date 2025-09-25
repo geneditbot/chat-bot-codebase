@@ -10,7 +10,7 @@ class ChatSession(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     original_lesson = Column(Text)
     updated_lesson = Column(Text)
-    summary = Column(Text)  # New field for summarized history
+    summary = Column(Text)  
 
 class Message(Base):
     __tablename__ = "chat_messages"

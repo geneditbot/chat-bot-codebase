@@ -7,3 +7,5 @@ pymysql==1.1.1
 sqlalchemy==2.0.41
 pymupdf==1.26.1
 lxml==5.4.0
+cryptography==46.0.1
+python-multipart==0.0.20

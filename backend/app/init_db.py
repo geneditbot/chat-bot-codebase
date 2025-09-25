@@ -1,5 +1,5 @@
-from .models import Base  # Your models
-from .db import engine  # Your SQLAlchemy engine
+from .models import Base  
+from .db import engine  #SQLAlchemy engine
 
 def init_db():
     # This will create all tables if they don't already exist
