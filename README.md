@@ -50,7 +50,7 @@ A LLM based chatbot that supports educators to integrate EDI principles in their
    ```
    Frontend will run at: http://localhost:5173
 6. Access the application
-   Open your browser and go to http://localhost:5173
+   - Open your browser and go to http://localhost:5173
 
 ## Resources
 - System prompt - https://github.com/geneditbot/chat-bot-codebase/blob/main/SystemPrompt.txt
