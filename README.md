@@ -53,5 +53,5 @@ A LLM based chatbot that supports educators to integrate EDI principles in their
    Open your browser and go to http://localhost:5173
 
 ## Resources
-System prompt - 
-GenEDIt Demo - 
+- System prompt - 
+- GenEDIt Demo - https://github.com/geneditbot/chat-bot-codebase/blob/main/GenEDIt_Demo.mp4
